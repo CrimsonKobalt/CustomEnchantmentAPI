@@ -9,7 +9,6 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.List;
 
 @Slf4j
 public abstract class CustomEnchantment extends Enchantment {
@@ -21,9 +20,12 @@ public abstract class CustomEnchantment extends Enchantment {
 
     /* ENCHANTMENT LEVELLING LOGIC */
     private static final int MINLEVEL = 1;
-    private int maxLevel;
-    private int costMultiplierOnBook;
-    private int costMultiplierOnItem = costMultiplierOnBook * 2;
+    private static final int MAXLEVEL_DEFAULT = 1;
+    private int maxLevel = MAXLEVEL_DEFAULT;
+
+    /* ENCHANTMENT LEVELLING COST */
+    private static final int MULTIPLIER_DEFAULT = 2;
+    private int baseLevellingCostMultiplier = MULTIPLIER_DEFAULT;
 
     protected CustomEnchantment(@NotNull String keyName, @NotNull String displayName, boolean autoDiscover) {
         super(NamespacedKey.minecraft(keyName.toLowerCase()));
@@ -44,8 +46,6 @@ public abstract class CustomEnchantment extends Enchantment {
         this(name, true);
     }
 
-    /***** CUSTOMENCHANTMENT API *****/
-
     /**
      * Some enchantments do not care about levels.
      * Functionally, this is the same as returning getMaxLevel() = 1;
@@ -59,23 +59,23 @@ public abstract class CustomEnchantment extends Enchantment {
         return autoDiscover;
     }
 
-    /** INHERITED BY ENCHANTMENT **/
-    @NotNull
-    @Override
-    public String getName() {
-        return keyName;
+    public final void setMaxLevel(int maxLevel) {
+        this.maxLevel = maxLevel;
     }
 
-    @Override
-    public int getMaxLevel() {
-        return maxLevel;
+    public final void setBaseLevellingCostMultiplier(int multiplier) {
+        this.baseLevellingCostMultiplier = multiplier;
     }
 
-    @Override
-    public int getStartLevel() {
-        return 1;
+    public final int getBookMultiplier() {
+        return baseLevellingCostMultiplier;
     }
 
+    public final int getItemMultiplier() {
+        return baseLevellingCostMultiplier * 2;
+    }
+
+    /***** CUSTOMENCHANTMENT ABSTRACT METHODS *****/
 
     /**
      * EnchantmentTarget is used to determine what items an enchantment is allowed enchant
@@ -94,6 +94,28 @@ public abstract class CustomEnchantment extends Enchantment {
      */
     @Override
     public abstract boolean conflictsWith(@NotNull Enchantment enchantment);
+
+
+    /***** INHERITED BY ENCHANTMENT *****/
+
+    @NotNull
+    @Override
+    public String getName() {
+        return keyName;
+    }
+
+    @Override
+    public int getMaxLevel() {
+        return maxLevel;
+    }
+
+    @Override
+    public int getStartLevel() {
+        return 1;
+    }
+
+
+    /***** UTILITIES *****/
 
     /**
      * @param enchantments list of enchantments to check against

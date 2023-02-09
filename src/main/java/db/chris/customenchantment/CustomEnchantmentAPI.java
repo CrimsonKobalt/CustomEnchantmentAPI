@@ -21,9 +21,12 @@ import java.util.*;
 @Slf4j
 public class CustomEnchantmentAPI extends JavaPlugin {
 
+    private static JavaPlugin plugin;
+
     /***** AUTODISCOVER *****/
 
-    public static void start(Plugin plugin) {
+    public static void start(JavaPlugin javaPlugin) {
+        plugin = javaPlugin;
         // discovery-magic
         Reflections reflector = createReflector();
         discover(reflector, Listener.class, listenersToActivate);
