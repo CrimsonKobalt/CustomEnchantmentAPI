@@ -1,0 +1,4 @@
+name: CustomEnchantmentAPI
+version: '${project.version}'
+main: db.chris.customenchantment.Main
+api-version: 1.19

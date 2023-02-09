@@ -4,21 +4,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.bukkit.NamespacedKey;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.enchantments.EnchantmentTarget;
-import org.bukkit.event.Listener;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.plugin.Plugin;
-import org.bukkit.plugin.PluginManager;
 import org.jetbrains.annotations.NotNull;
-import org.reflections.Reflections;
-import org.reflections.scanners.Scanners;
-import org.reflections.util.ClasspathHelper;
-import org.reflections.util.ConfigurationBuilder;
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.net.URL;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
 
 @Slf4j
 public abstract class CustomEnchantment extends Enchantment {
@@ -46,11 +37,11 @@ public abstract class CustomEnchantment extends Enchantment {
     }
 
     protected CustomEnchantment(@NotNull String name, boolean autoDiscover) {
-        this(name, name, autoDiscover);
+        this(name.toLowerCase().split("\\s+")[0], name, autoDiscover);
     }
 
     protected CustomEnchantment(@NotNull String name) {
-        this(name, name, true);
+        this(name, true);
     }
 
     /***** CUSTOMENCHANTMENT API *****/
@@ -60,7 +51,7 @@ public abstract class CustomEnchantment extends Enchantment {
      * Functionally, this is the same as returning getMaxLevel() = 1;
      * @return true if enchantment can be levelled
      */
-    public boolean isLevelled() {
+    public final boolean hasLevels() {
         return maxLevel == MINLEVEL;
     }
 
@@ -72,12 +63,12 @@ public abstract class CustomEnchantment extends Enchantment {
     @NotNull
     @Override
     public String getName() {
-        return null;
+        return keyName;
     }
 
     @Override
     public int getMaxLevel() {
-        return 0;
+        return maxLevel;
     }
 
     @Override
@@ -85,19 +76,50 @@ public abstract class CustomEnchantment extends Enchantment {
         return 1;
     }
 
+
+    /**
+     * EnchantmentTarget is used to determine what items an enchantment is allowed enchant
+     * https://minecraft.fandom.com/wiki/Anvil_mechanics#Combining_items
+     * NOTE: EnchantmentTarget.WEAPON == swords
+     */
     @NotNull
     @Override
-    public EnchantmentTarget getItemTarget() {
-        return null;
-    }
+    public abstract EnchantmentTarget getItemTarget();
 
+    /**
+     * checks whether or not 2 enchantments clash
+     * @param enchantment The enchantment to check against
+     * @return whether the enchantments could both enchant the same item,
+     * if said item allows those enchantments to be on it
+     */
     @Override
-    public boolean conflictsWith(@NotNull Enchantment enchantment) {
-        return false;
+    public abstract boolean conflictsWith(@NotNull Enchantment enchantment);
+
+    /**
+     * @param enchantments list of enchantments to check against
+     * @return whether the target enchantment conflict with any enchantment in the list
+     */
+    public boolean conflictsWith(Collection<Enchantment> enchantments) {
+        return enchantments.stream().anyMatch(this::conflictsWith);
     }
 
+    /**
+     * @param enchantments Enchantments to check against
+     * @return whether the target enchantment conflict with any of the given enchantments
+     */
+    public boolean conflictsWith(Enchantment... enchantments) {
+        return Arrays.stream(enchantments).anyMatch(this::conflictsWith);
+    }
+
+    /**
+     * Ability to enchant items is determined by target & other enchantments present
+     * ! DOES NOT CHECK IF THE ENCHANTMENT IS ALREADY PRESENT
+     * @param itemStack Item to test
+     * @return whether or not an enchantment can enchant an item
+     */
     @Override
     public boolean canEnchantItem(@NotNull ItemStack itemStack) {
-        return false;
+        return this.getItemTarget().includes(itemStack)
+                && this.conflictsWith(itemStack.getEnchantments().keySet());
     }
 }

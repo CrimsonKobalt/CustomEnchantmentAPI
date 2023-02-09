@@ -40,7 +40,7 @@ public class CustomEnchantmentAPI extends JavaPlugin {
                 .map(p -> p.getName())
                 .map(s -> s.split("\\.")[0])
                 .distinct()
-                .peek(log::info)
+                .peek(s -> log.debug("discovered package root: {}", s))
                 .map(s -> ClasspathHelper.forPackage(s))
                 .reduce((c1, c2) -> {
                     Collection<URL> res = new HashSet<>();
@@ -66,9 +66,10 @@ public class CustomEnchantmentAPI extends JavaPlugin {
 
     private static void registerEnchantments() {
         enchantmentsToRegister.stream()
-                .peek(clazz -> log.info("registering enchantment: {}", clazz.getSimpleName()))
+                .peek(clazz -> log.debug("discovered Enchantment: {}", clazz.getSimpleName()))
                 .map(CustomEnchantmentAPI::createEnchantment)
                 .filter(CustomEnchantment::isEnabled)
+                .peek(enchantment -> log.info("registering Enchantment: {}", enchantment.getClass().getSimpleName()))
                 .peek(enchantments::add)
                 .forEach(CustomEnchantmentAPI::putInRegistry);
     }
@@ -117,8 +118,9 @@ public class CustomEnchantmentAPI extends JavaPlugin {
     private static void activateListeners(Plugin plugin) {
         PluginManager manager = plugin.getServer().getPluginManager();
         listenersToActivate.stream()
-                .peek(l -> log.info("registering Listener: " + l.getSimpleName()))
+                .peek(l -> log.debug("discovered Listener: {}", l.getSimpleName()))
                 .map(CustomEnchantmentAPI::createListener)
+                .peek(listener -> log.info("registering Listener: {}", listener.getClass().getSimpleName()))
                 .forEach(listener -> manager.registerEvents(listener, plugin));
     }
 
