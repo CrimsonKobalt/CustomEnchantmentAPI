@@ -11,23 +11,19 @@ import org.bukkit.inventory.ItemStack;
 @Slf4j
 public class AnvilRoutineWithCustomEnchantments implements Listener {
 
-    @EventHandler(priority = EventPriority.LOWEST)
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void fixAnvil(PrepareAnvilEvent event) {
+
         // do some preliminary checks
         AnvilInventory slots = event.getInventory();
 
         ItemStack first = slots.getItem(0);
         ItemStack second = slots.getItem(1);
+        ItemStack result = event.getResult();
 
-        if (first == null || second == null) {
-            log.trace("null-check failed for {}", this);
-            return;
-        }
+        AnvilMode mode = AnvilMode.findMode(first, second, result);
 
-        // The only thing that really matters is normalising the item
-        //      -> let vanilla handle most of the issues and focus on enchantments
-        EnchantmentMerger enchantmentMerger = new EnchantmentMerger(first, second);
-        enchantmentMerger.prepare();
-
+        mode.execute(slots, result);
+        event.setResult(result);
     }
 }

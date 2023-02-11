@@ -1,6 +1,7 @@
 package db.chris.customenchantment;
 
 import db.chris.customenchantment.api.CustomEnchantment;
+import db.chris.customenchantment.mergers.enchants.EnchantingCostPolicy;
 import lombok.extern.slf4j.Slf4j;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.event.Listener;
@@ -19,9 +20,19 @@ import java.net.URL;
 import java.util.*;
 
 @Slf4j
-public class CustomEnchantmentAPI extends JavaPlugin {
+public class CustomEnchantmentAPI {
 
     private static JavaPlugin plugin;
+    private static EnchantingCostPolicy costPolicy = EnchantingCostPolicy.VANILLA;
+
+    public static void setEnchantingCostPolicy(EnchantingCostPolicy policy) {
+        log.info("changed enchantment cost-policy from {} to {}", costPolicy, policy);
+        costPolicy = policy;
+    }
+
+    public static EnchantingCostPolicy getEnchantingCostPolicy() {
+        return costPolicy;
+    }
 
     /***** AUTODISCOVER *****/
 

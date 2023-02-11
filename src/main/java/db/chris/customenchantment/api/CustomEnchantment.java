@@ -1,15 +1,18 @@
 package db.chris.customenchantment.api;
 
-import db.chris.customenchantment.anvil.EnchantmentMerger;
+import db.chris.customenchantment.utils.LoreBuilder;
 import lombok.extern.slf4j.Slf4j;
 import org.bukkit.NamespacedKey;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.enchantments.EnchantmentTarget;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 
 @Slf4j
 public abstract class CustomEnchantment extends Enchantment {
@@ -141,5 +144,30 @@ public abstract class CustomEnchantment extends Enchantment {
     public boolean canEnchantItem(@NotNull ItemStack itemStack) {
         return this.getItemTarget().includes(itemStack)
                 && !this.conflictsWith(itemStack.getEnchantments().keySet());
+    }
+
+    public static boolean hasCustomEnchant(ItemStack item) {
+        return item.getEnchantments().keySet().stream().anyMatch(e -> e instanceof CustomEnchantment);
+    }
+
+    /**
+     * applies an enchantment to an item at a given level without any checks
+     * applies lore to item without any checks
+     * @param item item to apply enchantment on
+     * @param enchantment enchantment to apply
+     * @param level level of enchantment
+     */
+    public static void apply(ItemStack item, CustomEnchantment enchantment, Integer level) {
+        ItemMeta meta = item.getItemMeta();
+        List<String> lore = meta.getLore();
+        if (lore == null) lore = new ArrayList<>();
+        String loreText = enchantment.displayName;
+        if (enchantment.hasLevels()) {
+            loreText += " " + LoreBuilder.toRomanNumeral(level);
+        }
+        lore.add(LoreBuilder.formatLore(loreText));
+        meta.setLore(lore);
+        meta.addEnchant(enchantment, level, true);
+        item.setItemMeta(meta);
     }
 }
