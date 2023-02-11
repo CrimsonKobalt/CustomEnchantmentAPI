@@ -30,4 +30,19 @@ public class DummyEnchant extends CustomEnchantment {
     public boolean conflictsWith(@NotNull Enchantment enchantment) {
         return false;
     }
+
+    @Override
+    public int getEnchantCostOnBook() {
+        return 1;
+    }
+
+    @Override
+    public int getEnchantCostOnItem() {
+        return 2;
+    }
+
+    @Override
+    public int getMaxLevel() {
+        return 5;
+    }
 }

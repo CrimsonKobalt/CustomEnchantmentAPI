@@ -1,5 +1,6 @@
 package db.chris.customenchantment.api;
 
+import db.chris.customenchantment.anvil.EnchantmentMerger;
 import lombok.extern.slf4j.Slf4j;
 import org.bukkit.NamespacedKey;
 import org.bukkit.enchantments.Enchantment;
@@ -22,10 +23,6 @@ public abstract class CustomEnchantment extends Enchantment {
     private static final int MINLEVEL = 1;
     private static final int MAXLEVEL_DEFAULT = 1;
     private int maxLevel = MAXLEVEL_DEFAULT;
-
-    /* ENCHANTMENT LEVELLING COST */
-    private static final int MULTIPLIER_DEFAULT = 2;
-    private int baseLevellingCostMultiplier = MULTIPLIER_DEFAULT;
 
     protected CustomEnchantment(@NotNull String keyName, @NotNull String displayName, boolean autoDiscover) {
         super(NamespacedKey.minecraft(keyName.toLowerCase()));
@@ -59,27 +56,11 @@ public abstract class CustomEnchantment extends Enchantment {
         return autoDiscover;
     }
 
-    public final void setMaxLevel(int maxLevel) {
-        this.maxLevel = maxLevel;
-    }
-
-    public final void setBaseLevellingCostMultiplier(int multiplier) {
-        this.baseLevellingCostMultiplier = multiplier;
-    }
-
-    public final int getBookMultiplier() {
-        return baseLevellingCostMultiplier;
-    }
-
-    public final int getItemMultiplier() {
-        return baseLevellingCostMultiplier * 2;
-    }
-
-    /***** CUSTOMENCHANTMENT ABSTRACT METHODS *****/
+    /* CUSTOMENCHANTMENT ABSTRACT METHODS */
 
     /**
      * EnchantmentTarget is used to determine what items an enchantment is allowed enchant
-     * https://minecraft.fandom.com/wiki/Anvil_mechanics#Combining_items
+     * <a href="https://minecraft.fandom.com/wiki/Anvil_mechanics#Combining_items">wiki</a>
      * NOTE: EnchantmentTarget.WEAPON == swords
      */
     @NotNull
@@ -87,7 +68,7 @@ public abstract class CustomEnchantment extends Enchantment {
     public abstract EnchantmentTarget getItemTarget();
 
     /**
-     * checks whether or not 2 enchantments clash
+     * checks whether 2 enchantments clash
      * @param enchantment The enchantment to check against
      * @return whether the enchantments could both enchant the same item,
      * if said item allows those enchantments to be on it
@@ -95,8 +76,30 @@ public abstract class CustomEnchantment extends Enchantment {
     @Override
     public abstract boolean conflictsWith(@NotNull Enchantment enchantment);
 
+    /**
+     * This method should return the cost of adding this enchantment to an item from an enchanted book
+     * (vanilla: 1-4)
+     * @return cost
+     */
+    public abstract int getEnchantCostOnBook();
 
-    /***** INHERITED BY ENCHANTMENT *****/
+    /**
+     * This method should return the cost of adding this enchantment to an item from another item
+     * (vanilla: 1-8)
+     * @return cost
+     */
+    public abstract int getEnchantCostOnItem();
+
+    /**
+     * This method should return the maximum level the enchantment can achieve
+     * Is your enchantment meant to work without levels? Set this to 1.
+     * (Enchantments start at level 1)
+     * @return max level of the enchantment
+     */
+    @Override
+    public abstract int getMaxLevel();
+
+    /* INHERITED BY ENCHANTMENT */
 
     @NotNull
     @Override
@@ -105,17 +108,12 @@ public abstract class CustomEnchantment extends Enchantment {
     }
 
     @Override
-    public int getMaxLevel() {
-        return maxLevel;
-    }
-
-    @Override
     public int getStartLevel() {
         return 1;
     }
 
 
-    /***** UTILITIES *****/
+    /* UTILITIES */
 
     /**
      * @param enchantments list of enchantments to check against
@@ -137,11 +135,11 @@ public abstract class CustomEnchantment extends Enchantment {
      * Ability to enchant items is determined by target & other enchantments present
      * ! DOES NOT CHECK IF THE ENCHANTMENT IS ALREADY PRESENT
      * @param itemStack Item to test
-     * @return whether or not an enchantment can enchant an item
+     * @return whether an enchantment can enchant an item
      */
     @Override
     public boolean canEnchantItem(@NotNull ItemStack itemStack) {
         return this.getItemTarget().includes(itemStack)
-                && this.conflictsWith(itemStack.getEnchantments().keySet());
+                && !this.conflictsWith(itemStack.getEnchantments().keySet());
     }
 }

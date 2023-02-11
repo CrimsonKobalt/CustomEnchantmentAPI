@@ -30,4 +30,19 @@ public class DisabledDummyEnchant extends CustomEnchantment {
     public boolean conflictsWith(@NotNull Enchantment enchantment) {
         return false;
     }
+
+    @Override
+    public int getEnchantCostOnBook() {
+        return 0;
+    }
+
+    @Override
+    public int getEnchantCostOnItem() {
+        return 0;
+    }
+
+    @Override
+    public int getMaxLevel() {
+        return 0;
+    }
 }
