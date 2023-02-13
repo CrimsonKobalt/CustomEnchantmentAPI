@@ -1,15 +1,14 @@
 package db.chris.customenchantment;
 
 import db.chris.customenchantment.api.CustomEnchantment;
-import db.chris.customenchantment.mergers.enchants.EnchantingCostPolicy;
+import db.chris.customenchantment.api.DiscoverableListener;
 import lombok.extern.slf4j.Slf4j;
 import org.bukkit.enchantments.Enchantment;
-import org.bukkit.event.Listener;
+import org.bukkit.event.HandlerList;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.reflections.Reflections;
-import org.reflections.scanners.Scanners;
 import org.reflections.util.ClasspathHelper;
 import org.reflections.util.ConfigurationBuilder;
 
@@ -23,55 +22,69 @@ import java.util.*;
 public class CustomEnchantmentAPI {
 
     private static JavaPlugin plugin;
-    private static EnchantingCostPolicy costPolicy = EnchantingCostPolicy.VANILLA;
 
-    public static void setEnchantingCostPolicy(EnchantingCostPolicy policy) {
-        log.info("changed enchantment cost-policy from {} to {}", costPolicy, policy);
-        costPolicy = policy;
-    }
+    static CustomEnchantmentConfig config = CustomEnchantmentConfig.DEFAULT;
 
-    public static EnchantingCostPolicy getEnchantingCostPolicy() {
-        return costPolicy;
+    public static void setConfig(CustomEnchantmentConfig conf) {
+        config = conf;
     }
 
     /***** AUTODISCOVER *****/
 
-    public static void start(JavaPlugin javaPlugin) {
+    static void start(JavaPlugin javaPlugin) {
         plugin = javaPlugin;
         // discovery-magic
         Reflections reflector = createReflector();
-        discover(reflector, Listener.class, listenersToActivate);
+        // enchantments
         discover(reflector, CustomEnchantment.class, enchantmentsToRegister);
-
-        // configure enchantments
         registerEnchantments();
+        // listeners
+        discover(reflector, DiscoverableListener.class, listenersToActivate);
         activateListeners(plugin);
     }
 
     private static Reflections createReflector() {
         // enable usage of this as a library by scanning all classpaths for possible children of CustomEnchantment
-        Collection<URL> allPackagePrefixes = Arrays.stream(Package.getPackages())
-                .map(p -> p.getName())
+        Collection<URL> rootPackages = new HashSet<>(getAllRoots());
+
+        ConfigurationBuilder config = new ConfigurationBuilder()
+                .addUrls(rootPackages);
+
+        return new Reflections(config);
+    }
+    //this way you scan ALL packages in classroot. Might be useful if I develop this as a plugin instead of
+    private static Collection<URL> getAllRoots() {
+        return Arrays.stream(Package.getPackages())
+                .map(Package::getName)
                 .map(s -> s.split("\\.")[0])
                 .distinct()
-                .peek(s -> log.debug("discovered package root: {}", s))
-                .map(s -> ClasspathHelper.forPackage(s))
+                .peek(s -> log.debug("Discovered package root: {}", s))
+                .map(ClasspathHelper::forPackage)
                 .reduce((c1, c2) -> {
                     Collection<URL> res = new HashSet<>();
                     res.addAll(c1);
                     res.addAll(c2);
                     return res;
                 }).orElse(new HashSet<>());
+    }
 
-        ConfigurationBuilder config = new ConfigurationBuilder()
-                .addUrls(allPackagePrefixes)
-                .addScanners(Scanners.SubTypes);
-
-        return new Reflections(config);
+    private static URL getPluginRoot() {
+        String userlib = plugin.getClass().getName();
+        try {
+            URL rootPackage = ClasspathHelper.forPackage(userlib).stream().findFirst().get();
+            log.info(rootPackage.getFile());
+            return rootPackage;
+        } catch (NoSuchElementException e) {
+            log.error("couldn't find {} in classpath. Make sure your plugin's main class is in your top-level package.", userlib);
+            throw new RuntimeException("couldn't find " + userlib + " in classpath", e);
+        }
     }
 
     private static <T> void discover(Reflections reflector, Class<T> clazz, List<Class<? extends T>> target) {
-        target.addAll(reflector.getSubTypesOf(clazz));
+        reflector.getSubTypesOf(clazz)
+                .stream()
+                .peek(t -> log.debug("Discovered {}: {}", clazz.getSimpleName(), t.getSimpleName()))
+                .forEach(target::add);
     }
 
     /***** ENCHANTMENT REGISTRY *****/
@@ -80,11 +93,10 @@ public class CustomEnchantmentAPI {
 
     private static void registerEnchantments() {
         enchantmentsToRegister.stream()
-                .peek(clazz -> log.debug("discovered Enchantment: {}", clazz.getSimpleName()))
                 .map(CustomEnchantmentAPI::createEnchantment)
                 .filter(CustomEnchantment::isEnabled)
-                .peek(enchantment -> log.info("registering Enchantment: {}", enchantment.getClass().getSimpleName()))
                 .peek(enchantments::add)
+                .peek(e -> log.info("Registering CustomEnchantment: {}", e.getClass().getSimpleName()))
                 .forEach(CustomEnchantmentAPI::putInRegistry);
     }
 
@@ -104,7 +116,7 @@ public class CustomEnchantmentAPI {
     }
 
     @SuppressWarnings("unchecked cast")
-    public static <T extends CustomEnchantment> T find(Class<T> clazz) {
+    public static <T extends CustomEnchantment> T find(Class<? extends CustomEnchantment> clazz) {
         return enchantments.stream()
                 .filter(e -> e.getClass().equals(clazz))
                 .map(e -> (T) e)
@@ -127,18 +139,19 @@ public class CustomEnchantmentAPI {
     }
 
     /***** LISTENERS ******/
-    private static final List<Class<? extends Listener>> listenersToActivate = new ArrayList<>();
+    private static final List<Class<? extends DiscoverableListener>> listenersToActivate = new ArrayList<>();
+    private static final List<DiscoverableListener> enabledListeners = new ArrayList<>();
 
     private static void activateListeners(Plugin plugin) {
         PluginManager manager = plugin.getServer().getPluginManager();
         listenersToActivate.stream()
-                .peek(l -> log.debug("discovered Listener: {}", l.getSimpleName()))
                 .map(CustomEnchantmentAPI::createListener)
-                .peek(listener -> log.info("registering Listener: {}", listener.getClass().getSimpleName()))
+                .peek(listener -> log.info("Registering DiscoverableListener: {}", listener.getClass().getSimpleName()))
+                .peek(enabledListeners::add)
                 .forEach(listener -> manager.registerEvents(listener, plugin));
     }
 
-    private static <T extends Listener> Listener createListener(Class<T> clazz) {
+    private static <T extends DiscoverableListener> DiscoverableListener createListener(Class<T> clazz) {
         try {
             Constructor<T> cons = clazz.getDeclaredConstructor();
             cons.setAccessible(true);
@@ -152,4 +165,38 @@ public class CustomEnchantmentAPI {
         }
     }
 
+    @SuppressWarnings("unchecked cast")
+    private static <T extends DiscoverableListener> T findListener(Class<? extends DiscoverableListener> toFind) {
+        return enabledListeners.stream()
+                .filter(l -> l.getClass().equals(toFind))
+                .map(l -> (T) l)
+                .findFirst().orElse(null);
+    }
+
+    public static <T extends DiscoverableListener> boolean isEnabled(Class<T> listenerClass) {
+        return findListener(listenerClass) != null;
+    }
+
+    public static <T extends DiscoverableListener> void disableListener(Class<T> listenerClass) {
+        DiscoverableListener listener = findListener(listenerClass);
+        if (listener == null) {
+            log.debug("{} is already disabled", listenerClass.getSimpleName());
+            return;
+        }
+        enabledListeners.remove(listener);
+        HandlerList.unregisterAll(listener);
+        log.info("Disabled listener {}", listenerClass.getSimpleName());
+    }
+
+    public static <T extends DiscoverableListener> void enableListener(Class<T> listenerClass) {
+        DiscoverableListener listener = findListener(listenerClass);
+        if (listener != null) {
+            log.debug("{} is already enabled", listenerClass.getSimpleName());
+            return;
+        }
+        listener = createListener(listenerClass);
+        enabledListeners.add(listener);
+        plugin.getServer().getPluginManager().registerEvents(listener, plugin);
+        log.info("Enabled listener: {}", listenerClass.getSimpleName());
+    }
 }

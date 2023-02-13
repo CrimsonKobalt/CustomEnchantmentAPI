@@ -1,18 +1,17 @@
 package db.chris.customenchantment.api;
 
-import db.chris.customenchantment.utils.LoreBuilder;
+import db.chris.customenchantment.CustomEnchantmentAPI;
+import db.chris.customenchantment.mergers.enchants.implementations.VanillaEnchantmentMerger;
 import lombok.extern.slf4j.Slf4j;
+import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.enchantments.EnchantmentTarget;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.List;
 
 @Slf4j
 public abstract class CustomEnchantment extends Enchantment {
@@ -28,8 +27,8 @@ public abstract class CustomEnchantment extends Enchantment {
     private int maxLevel = MAXLEVEL_DEFAULT;
 
     protected CustomEnchantment(@NotNull String keyName, @NotNull String displayName, boolean autoDiscover) {
-        super(NamespacedKey.minecraft(keyName.toLowerCase()));
-        this.keyName = keyName.toLowerCase();
+        super(NamespacedKey.minecraft(keyName.toLowerCase().replace(" ", "")));
+        this.keyName = keyName.toLowerCase().replace(" ", "");
         this.displayName = displayName;
         this.autoDiscover = autoDiscover;
     }
@@ -39,7 +38,7 @@ public abstract class CustomEnchantment extends Enchantment {
     }
 
     protected CustomEnchantment(@NotNull String name, boolean autoDiscover) {
-        this(name.toLowerCase().split("\\s+")[0], name, autoDiscover);
+        this(name, name, autoDiscover);
     }
 
     protected CustomEnchantment(@NotNull String name) {
@@ -52,11 +51,15 @@ public abstract class CustomEnchantment extends Enchantment {
      * @return true if enchantment can be levelled
      */
     public final boolean hasLevels() {
-        return maxLevel == MINLEVEL;
+        return maxLevel != MINLEVEL;
     }
 
     public final boolean isEnabled() {
         return autoDiscover;
+    }
+
+    public final String getDisplayName() {
+        return this.displayName;
     }
 
     /* CUSTOMENCHANTMENT ABSTRACT METHODS */
@@ -150,24 +153,11 @@ public abstract class CustomEnchantment extends Enchantment {
         return item.getEnchantments().keySet().stream().anyMatch(e -> e instanceof CustomEnchantment);
     }
 
-    /**
-     * applies an enchantment to an item at a given level without any checks
-     * applies lore to item without any checks
-     * @param item item to apply enchantment on
-     * @param enchantment enchantment to apply
-     * @param level level of enchantment
-     */
-    public static void apply(ItemStack item, CustomEnchantment enchantment, Integer level) {
-        ItemMeta meta = item.getItemMeta();
-        List<String> lore = meta.getLore();
-        if (lore == null) lore = new ArrayList<>();
-        String loreText = enchantment.displayName;
-        if (enchantment.hasLevels()) {
-            loreText += " " + LoreBuilder.toRomanNumeral(level);
-        }
-        lore.add(LoreBuilder.formatLore(loreText));
-        meta.setLore(lore);
-        meta.addEnchant(enchantment, level, true);
-        item.setItemMeta(meta);
+    public static <T extends CustomEnchantment> ItemStack createEnchantedBook(Class<T> enchantment, int level, boolean override) {
+        T e = CustomEnchantmentAPI.find(enchantment);
+        ItemStack book = new ItemStack(Material.ENCHANTED_BOOK);
+        if (!override) level = Math.max(e.getMaxLevel(), level);
+        VanillaEnchantmentMerger.apply(book, e, level);
+        return book;
     }
 }

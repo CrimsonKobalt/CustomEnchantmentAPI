@@ -1,8 +1,8 @@
 package db.chris.customenchantment.mocks;
 
-import org.bukkit.event.Listener;
+import db.chris.customenchantment.api.DiscoverableListener;
 
-public class DummyListener implements Listener {
+public class DummyListener implements DiscoverableListener {
 
-
+    /* does nothing */
 }

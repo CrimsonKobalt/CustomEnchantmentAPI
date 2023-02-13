@@ -1,10 +1,18 @@
 package db.chris.customenchantment.utils;
 
+import db.chris.customenchantment.CustomEnchantmentConfig;
+
+import java.util.function.Function;
+
 public class LoreBuilder {
 
+    /**
+     * formats the lore using the registered LoreFormatter
+     * @param lore e.g. "Power I"
+     * @return formatted String to display
+     */
     public static String formatLore(String lore) {
-
-        return lore;
+        return CustomEnchantmentConfig.get().loreFormatter().format(lore);
     }
 
     enum RomanNumeral {

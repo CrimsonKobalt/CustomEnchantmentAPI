@@ -15,4 +15,9 @@ public class Main extends JavaPlugin {
     public Main(JavaPluginLoader loader, PluginDescriptionFile descriptionFile, File dataFolder, File file) {
         super(loader, descriptionFile, dataFolder, file);
     }
+
+    @Override
+    public void onEnable() {
+        CustomEnchantmentAPI.start(this);
+    }
 }

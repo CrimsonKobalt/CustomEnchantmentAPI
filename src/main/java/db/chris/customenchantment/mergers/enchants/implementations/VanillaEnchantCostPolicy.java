@@ -18,8 +18,7 @@ public class VanillaEnchantCostPolicy implements EnchantingCostPolicy {
     public int cost(Enchantment enchantment, int level, Material mat) {
         return level * enchantCost(enchantment, mat);
     }
-
-
+    
     private static int enchantCost(Enchantment enchantment, Material sacrifice) {
         // we need to do something dirty to fix vanilla enchants...
         if (enchantment instanceof CustomEnchantment c) {

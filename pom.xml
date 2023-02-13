@@ -201,13 +201,25 @@
                     </annotationProcessorPaths>
                 </configuration>
             </plugin>
-
+            <!-- MAVEN DEPENDENCY PLUGIN -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>
                 <version>3.5.0</version>
             </plugin>
-
+            <!-- JAR BUILDER -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <addClasspath>true</addClasspath>
+                            <classpathPrefix>${project.build.finalName}.lib/</classpathPrefix>
+                        </manifest>
+                    </archive>
+                </configuration>
+            </plugin>
         </plugins>
 
     </build>
