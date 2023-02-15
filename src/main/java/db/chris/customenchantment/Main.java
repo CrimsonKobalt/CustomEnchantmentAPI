@@ -20,7 +20,7 @@ public class Main extends JavaPlugin {
 
     @Override
     public void onEnable() {
-        //CustomEnchantmentAPI.start(this);
+        CustomEnchantmentAPI.start(this, config);
         this.setConfiguration();
     }
 

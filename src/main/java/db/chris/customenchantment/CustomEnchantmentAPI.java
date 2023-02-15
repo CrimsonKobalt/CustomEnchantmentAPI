@@ -3,6 +3,7 @@ package db.chris.customenchantment;
 import db.chris.customenchantment.api.CustomEnchantment;
 import db.chris.customenchantment.api.DiscoverableListener;
 import lombok.extern.slf4j.Slf4j;
+import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.event.HandlerList;
 import org.bukkit.plugin.Plugin;
@@ -23,6 +24,7 @@ import java.util.*;
 public class CustomEnchantmentAPI {
 
     static CustomEnchantmentConfig config = CustomEnchantmentConfig.DEFAULT;
+    static boolean loadAnvilConfig = false;
 
     public static void setConfig(CustomEnchantmentConfig conf) {
         config = conf;
@@ -30,7 +32,7 @@ public class CustomEnchantmentAPI {
 
     /***** AUTODISCOVER *****/
 
-    static void start(JavaPlugin plugin) {
+    public static void start(JavaPlugin plugin) {
         // discovery-magic
         Reflections reflector = createReflector(plugin);
         // enchantments
@@ -39,6 +41,11 @@ public class CustomEnchantmentAPI {
         // listeners
         discover(reflector, DiscoverableListener.class, listenersToActivate);
         activateListeners(plugin);
+    }
+
+    static void start(JavaPlugin plugin, FileConfiguration config) {
+        loadAnvilConfig = config.getBoolean("anvil.fix.enabled");
+        start(plugin);
     }
 
     private static Reflections createReflector(JavaPlugin plugin) {
@@ -96,11 +103,11 @@ public class CustomEnchantmentAPI {
                 pkgName += dirs[j] + "/";
             }
             pkgName = pkgName.substring(0, pkgName.length() - 1);
-            log.info("searching pkg: {}", pkgName);
+            log.trace("searching pkg: {}", pkgName);
             if (!containsUserClasses(pkgName, loader)) {
                 // return package that is one up the tree
                 String toReturn = pkgName.replace("/", ".") + "." + dirs[i+1];
-                log.info("discovered first common package: {}", toReturn);
+                log.trace("discovered first common package: {}", toReturn);
                 return toReturn;
             }
         }
@@ -116,9 +123,9 @@ public class CustomEnchantmentAPI {
             File[] files = pkgf.listFiles();
             assert files != null;
             for (File file : files) {
-                log.info("found file: {}", file.getName());
+                log.trace("found file: {}", file.getName());
                 if (file.isFile() && file.getName().endsWith(".class")) {
-                    log.info("{} is a file that ends with .class!", file.getName());
+                    log.trace("{} is a file that ends with .class!", file.getName());
                     return true;
                 }
             }

@@ -31,7 +31,6 @@ public class TestAutoDiscover {
 
     @Test
     public void testAutoDiscoverOnStartup() {
-        CustomEnchantmentAPI.start(plugin);
         assertDoesNotThrow(() -> CustomEnchantmentAPI.find(DummyEnchant.class));
         assertThrows(NoSuchElementException.class, () -> CustomEnchantmentAPI.find(DisabledDummyEnchant.class));
     }
