@@ -26,7 +26,8 @@ public class CustomEnchantmentAPI {
     static CustomEnchantmentConfig config = CustomEnchantmentConfig.DEFAULT;
     static boolean loadAnvilConfig = false;
 
-    public static void setConfig(CustomEnchantmentConfig conf) {
+    public static void setConfig(CustomEnchantmentConfig conf, JavaPlugin plugin) {
+        log.warn("Configuration has been changed by: {}", plugin.getClass().getName());
         config = conf;
     }
 
@@ -45,6 +46,7 @@ public class CustomEnchantmentAPI {
 
     static void start(JavaPlugin plugin, FileConfiguration config) {
         loadAnvilConfig = config.getBoolean("anvil.fix.enabled");
+        log.info("Anvil-fix listener enabled: {}", loadAnvilConfig);
         start(plugin);
     }
 
