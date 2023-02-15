@@ -12,6 +12,7 @@ import org.reflections.Reflections;
 import org.reflections.util.ClasspathHelper;
 import org.reflections.util.ConfigurationBuilder;
 
+import java.io.File;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -21,8 +22,6 @@ import java.util.*;
 @Slf4j
 public class CustomEnchantmentAPI {
 
-    private static JavaPlugin plugin;
-
     static CustomEnchantmentConfig config = CustomEnchantmentConfig.DEFAULT;
 
     public static void setConfig(CustomEnchantmentConfig conf) {
@@ -31,10 +30,9 @@ public class CustomEnchantmentAPI {
 
     /***** AUTODISCOVER *****/
 
-    static void start(JavaPlugin javaPlugin) {
-        plugin = javaPlugin;
+    static void start(JavaPlugin plugin) {
         // discovery-magic
-        Reflections reflector = createReflector();
+        Reflections reflector = createReflector(plugin);
         // enchantments
         discover(reflector, CustomEnchantment.class, enchantmentsToRegister);
         registerEnchantments();
@@ -43,16 +41,20 @@ public class CustomEnchantmentAPI {
         activateListeners(plugin);
     }
 
-    private static Reflections createReflector() {
+    private static Reflections createReflector(JavaPlugin plugin) {
         // enable usage of this as a library by scanning all classpaths for possible children of CustomEnchantment
-        Collection<URL> rootPackages = new HashSet<>(getAllRoots());
+        Collection<URL> rootPackages = new HashSet<>(
+                ClasspathHelper.forPackage(findPluginGroupPackage(plugin), ClassLoader.getSystemClassLoader())
+        );
 
         ConfigurationBuilder config = new ConfigurationBuilder()
                 .addUrls(rootPackages);
 
         return new Reflections(config);
     }
-    //this way you scan ALL packages in classroot. Might be useful if I develop this as a plugin instead of
+
+    //this way you scan ALL packages loaded in the classpath: ie all active plugins.
+    // Might be useful if I develop this as a stand-alone plugin instead of a library
     private static Collection<URL> getAllRoots() {
         return Arrays.stream(Package.getPackages())
                 .map(Package::getName)
@@ -68,16 +70,60 @@ public class CustomEnchantmentAPI {
                 }).orElse(new HashSet<>());
     }
 
-    private static URL getPluginRoot() {
+    /**
+     *
+     * @param plugin plugin for which to find the root package
+     * @return URL to root package of plugin
+     */
+    private static URL getPluginRoot(JavaPlugin plugin) {
         String userlib = plugin.getClass().getName();
         try {
-            URL rootPackage = ClasspathHelper.forPackage(userlib).stream().findFirst().get();
+            URL rootPackage = ClasspathHelper.forPackage(userlib).stream().findFirst().orElseThrow();
             log.info(rootPackage.getFile());
             return rootPackage;
         } catch (NoSuchElementException e) {
             log.error("couldn't find {} in classpath. Make sure your plugin's main class is in your top-level package.", userlib);
             throw new RuntimeException("couldn't find " + userlib + " in classpath", e);
         }
+    }
+
+    private static String findPluginGroupPackage(JavaPlugin plugin) {
+        String[] dirs = plugin.getClass().getPackage().getName().split("\\.");
+        ClassLoader loader = ClassLoader.getSystemClassLoader();
+        for (int i = dirs.length - 1; i>= 0; i--) {
+            String pkgName = "";
+            for (int j = 0; j <= i ; j++) {
+                pkgName += dirs[j] + "/";
+            }
+            pkgName = pkgName.substring(0, pkgName.length() - 1);
+            log.info("searching pkg: {}", pkgName);
+            if (!containsUserClasses(pkgName, loader)) {
+                // return package that is one up the tree
+                String toReturn = pkgName.replace("/", ".") + "." + dirs[i+1];
+                log.info("discovered first common package: {}", toReturn);
+                return toReturn;
+            }
+        }
+        // should never happen in normal package structures...
+        throw new IllegalArgumentException("couldn't find own package-root...");
+    }
+
+    private static boolean containsUserClasses(String pkgPath, ClassLoader loader) {
+        URL pkg = loader.getResource(pkgPath);
+        assert pkg != null;
+        File pkgf = new File(pkg.getPath());
+        if (pkgf.exists() && pkgf.isDirectory()) {
+            File[] files = pkgf.listFiles();
+            assert files != null;
+            for (File file : files) {
+                log.info("found file: {}", file.getName());
+                if (file.isFile() && file.getName().endsWith(".class")) {
+                    log.info("{} is a file that ends with .class!", file.getName());
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     private static <T> void discover(Reflections reflector, Class<T> clazz, List<Class<? extends T>> target) {
@@ -188,7 +234,7 @@ public class CustomEnchantmentAPI {
         log.info("Disabled listener {}", listenerClass.getSimpleName());
     }
 
-    public static <T extends DiscoverableListener> void enableListener(Class<T> listenerClass) {
+    public static <T extends DiscoverableListener> void enableListener(Class<T> listenerClass, JavaPlugin plugin) {
         DiscoverableListener listener = findListener(listenerClass);
         if (listener != null) {
             log.debug("{} is already enabled", listenerClass.getSimpleName());

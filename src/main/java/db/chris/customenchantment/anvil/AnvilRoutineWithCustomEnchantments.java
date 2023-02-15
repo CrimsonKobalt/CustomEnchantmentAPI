@@ -28,6 +28,6 @@ public class AnvilRoutineWithCustomEnchantments implements DiscoverableListener 
 
     @Override
     public boolean isEnabled() {
-        return CustomEnchantmentConfig.get().enableCustomAnvilRoutine();
+        return true;
     }
 }

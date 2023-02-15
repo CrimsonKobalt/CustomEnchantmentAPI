@@ -18,7 +18,7 @@ public interface CustomEnchantmentConfig {
     default ItemDmgMerger durabilityAfterRepair() {
         return ItemDmgMerger.VANILLA;
     }
-    
+
     default EnchantingCostPolicy enchantingCostPolicy() {
         return EnchantingCostPolicy.VANILLA;
     }
@@ -42,9 +42,7 @@ public interface CustomEnchantmentConfig {
     }
 
     /** startup & instance fetch methods **/
-    default boolean enableCustomAnvilRoutine() {
-        return true;
-    }
+
 
     CustomEnchantmentConfig DEFAULT = new CustomEnchantmentConfig() {};
 
