@@ -1,7 +1,8 @@
 package db.chris.customenchantment.api;
 
 import db.chris.customenchantment.CustomEnchantmentAPI;
-import db.chris.customenchantment.mergers.enchants.implementations.VanillaEnchantmentMerger;
+import db.chris.customenchantment.anvil.configuration.enchant.EnchantmentMerger;
+import db.chris.customenchantment.anvil.configuration.enchant.merger.VanillaEnchantmentMerger;
 import lombok.extern.slf4j.Slf4j;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -13,7 +14,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Arrays;
 import java.util.Collection;
 
-@Slf4j
+@Slf4j(topic = "CustomEnchantmentAPI")
 public abstract class CustomEnchantment extends Enchantment {
 
     /* NAMING AND AUTODISCOVERY */
@@ -157,7 +158,7 @@ public abstract class CustomEnchantment extends Enchantment {
         T e = CustomEnchantmentAPI.find(enchantment);
         ItemStack book = new ItemStack(Material.ENCHANTED_BOOK);
         if (!override) level = Math.max(e.getMaxLevel(), level);
-        VanillaEnchantmentMerger.apply(book, e, level);
+        EnchantmentMerger.apply(book, e, level);
         return book;
     }
 }

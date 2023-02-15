@@ -1,7 +1,7 @@
-package db.chris.customenchantment.mergers.enchants.implementations;
+package db.chris.customenchantment.anvil.configuration.enchant.policy;
 
 import db.chris.customenchantment.api.CustomEnchantment;
-import db.chris.customenchantment.mergers.enchants.EnchantingCostPolicy;
+import db.chris.customenchantment.anvil.configuration.enchant.EnchantingCostPolicy;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
@@ -14,11 +14,16 @@ import java.util.Set;
 
 public class VanillaEnchantCostPolicy implements EnchantingCostPolicy {
 
-    @Override
+
     public int cost(Enchantment enchantment, int level, Material mat) {
         return level * enchantCost(enchantment, mat);
     }
-    
+
+    @Override
+    public int conflictCost(int nrOfConflicts) {
+        return nrOfConflicts;
+    }
+
     private static int enchantCost(Enchantment enchantment, Material sacrifice) {
         // we need to do something dirty to fix vanilla enchants...
         if (enchantment instanceof CustomEnchantment c) {

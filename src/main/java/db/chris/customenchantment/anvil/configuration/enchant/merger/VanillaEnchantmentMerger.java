@@ -1,9 +1,9 @@
-package db.chris.customenchantment.mergers.enchants.implementations;
+package db.chris.customenchantment.anvil.configuration.enchant.merger;
 
 import db.chris.customenchantment.CustomEnchantmentConfig;
 import db.chris.customenchantment.api.CustomEnchantment;
-import db.chris.customenchantment.mergers.enchants.EnchantingCostPolicy;
-import db.chris.customenchantment.mergers.enchants.EnchantmentMerger;
+import db.chris.customenchantment.anvil.configuration.enchant.EnchantingCostPolicy;
+import db.chris.customenchantment.anvil.configuration.enchant.EnchantmentMerger;
 import db.chris.customenchantment.utils.LoreBuilder;
 import lombok.extern.slf4j.Slf4j;
 import org.bukkit.Material;
@@ -21,30 +21,26 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Slf4j
 public class VanillaEnchantmentMerger implements EnchantmentMerger {
 
-    private final Map<Enchantment, Integer> target;
-    private final Map<Enchantment, Integer> sacrifice;
+    private final EnchantingCostPolicy policy;
 
-    private final Material targetMat;
-    private final Material sacrificeMat;
+    private Map<Enchantment, Integer> target;
+    private Map<Enchantment, Integer> sacrifice;
+
+    private Material targetMat;
+    private Material sacrificeMat;
 
     /**
      * Constructor is NOT null-safe.
-     * @param target first item in anvil
-     * @param sacrifice second item in anvil
+     * @param policy, used to calculate the cost of merging
      */
-    public VanillaEnchantmentMerger(ItemStack target, ItemStack sacrifice) {
-        this.target = target.getType() == Material.ENCHANTED_BOOK ?
-                ((EnchantmentStorageMeta) target.getItemMeta()).getStoredEnchants() : target.getEnchantments();
-        this.targetMat = target.getType();
+    public VanillaEnchantmentMerger(EnchantingCostPolicy policy) {
+        this.policy = policy;
 
-        this.sacrifice = sacrifice.getType() == Material.ENCHANTED_BOOK ?
-                ((EnchantmentStorageMeta) sacrifice.getItemMeta()).getStoredEnchants() : sacrifice.getEnchantments();
-        this.sacrificeMat = sacrifice.getType();
     }
 
     private boolean prepared = false;
     private int totalCost = 0;
-    private final Map<Enchantment, Integer> result = new HashMap<>();
+    private Map<Enchantment, Integer> result = new HashMap<>();
 
     private void throwIfNotPrepared() {
         if (!prepared){
@@ -54,14 +50,27 @@ public class VanillaEnchantmentMerger implements EnchantmentMerger {
     }
 
     @Override
-    public final void apply(){
-        if (prepared) return;
+    public final void apply(ItemStack target, ItemStack sacrifice){
+        // init
+        prepared = false;
+        totalCost = 0;
+        result = new HashMap<>();
+        this.target = target.getType() == Material.ENCHANTED_BOOK ?
+                ((EnchantmentStorageMeta) target.getItemMeta()).getStoredEnchants() : target.getEnchantments();
+        this.targetMat = target.getType();
+
+        this.sacrifice = sacrifice.getType() == Material.ENCHANTED_BOOK ?
+                ((EnchantmentStorageMeta) sacrifice.getItemMeta()).getStoredEnchants() : sacrifice.getEnchantments();
+        this.sacrificeMat = sacrifice.getType();
+
+        // do stuff
+
         // req: pre-filter out clashes && take care of them :)
         // find compatible enchantments
         Map<Enchantment, Integer> compatibles = new HashMap<>();
         totalCost += filterCompatibleInto(compatibles);
         // now we have 2 maps (with "target" being the first one) with all the necessary data
-        totalCost += setResultMap(target, compatibles);
+        totalCost += setResultMap(this.target, compatibles);
 
         prepared = true;
     }
@@ -96,7 +105,7 @@ public class VanillaEnchantmentMerger implements EnchantmentMerger {
             } else {
                 // one level for every conflicting enchantment in target
                 // this cast should be safe in practice
-                cost.addAndGet((int) conflicts);
+                cost.addAndGet(policy.conflictCost((int) conflicts));
             }
         });
         return cost.get();
@@ -133,30 +142,5 @@ public class VanillaEnchantmentMerger implements EnchantmentMerger {
         result.putAll(target);
 
         return cost.get();
-    }
-
-    /**
-     * applies an enchantment to an item at a given level without any checks
-     * applies lore to item without any checks
-     * @param item item to apply enchantment on
-     * @param enchantment enchantment to apply
-     * @param level level of enchantment
-     */
-    public static void apply(ItemStack item, Enchantment enchantment, Integer level) {
-        ItemMeta meta = item.getItemMeta();
-        List<String> lore = meta.getLore();
-        if (lore == null) lore = new ArrayList<>();
-        String loreText;
-        // vanilla enchantments do not need a lore text for some reason
-        if (enchantment instanceof CustomEnchantment c) {
-            loreText = c.getDisplayName();
-            if (c.hasLevels()) {
-                loreText += " " + LoreBuilder.toRomanNumeral(level);
-            }
-            lore.add(LoreBuilder.formatLore(loreText));
-        }
-        meta.setLore(lore);
-        meta.addEnchant(enchantment, level, true);
-        item.setItemMeta(meta);
     }
 }

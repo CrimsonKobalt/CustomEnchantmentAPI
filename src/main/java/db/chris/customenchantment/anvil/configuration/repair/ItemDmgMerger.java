@@ -1,11 +1,12 @@
-package db.chris.customenchantment.anvil;
+package db.chris.customenchantment.anvil.configuration.repair;
 
-import db.chris.customenchantment.anvil.implementations.durability.RepairFullyPolicy;
-import db.chris.customenchantment.anvil.implementations.durability.VanillaRepairPolicy;
+import db.chris.customenchantment.anvil.AnvilMode;
+import db.chris.customenchantment.anvil.configuration.repair.damage.FullRepairMerger;
+import db.chris.customenchantment.anvil.configuration.repair.damage.VanillaItemDmgMerger;
 import org.bukkit.inventory.ItemStack;
 
 @FunctionalInterface
-public interface RepairPolicy {
+public interface ItemDmgMerger {
 
     /**
      * calculate the remaining damage on the resulting item using the target and sacrifice item,
@@ -18,6 +19,6 @@ public interface RepairPolicy {
      */
     int resultingDamage(ItemStack target, ItemStack sacrifice, AnvilMode mode);
 
-    RepairPolicy VANILLA = new VanillaRepairPolicy();
-    RepairPolicy FULL = new RepairFullyPolicy();
+    ItemDmgMerger VANILLA = new VanillaItemDmgMerger();
+    ItemDmgMerger FULL = new FullRepairMerger();
 }

@@ -1,42 +1,45 @@
 package db.chris.customenchantment;
 
-import db.chris.customenchantment.anvil.PreviousWorkCostPolicy;
-import db.chris.customenchantment.anvil.RepairPolicy;
-import db.chris.customenchantment.anvil.RenameCostPolicy;
-import db.chris.customenchantment.mergers.enchants.EnchantingCostPolicy;
-import db.chris.customenchantment.mergers.enchants.EnchantmentMerger;
-import db.chris.customenchantment.mergers.enchants.implementations.VanillaEnchantmentMerger;
+import db.chris.customenchantment.anvil.configuration.previouswork.PreviousWorkCostPolicy;
+import db.chris.customenchantment.anvil.configuration.repair.ItemDmgMerger;
+import db.chris.customenchantment.anvil.configuration.rename.RenameCostPolicy;
+import db.chris.customenchantment.anvil.configuration.enchant.EnchantingCostPolicy;
+import db.chris.customenchantment.anvil.configuration.enchant.EnchantmentMerger;
+import db.chris.customenchantment.anvil.configuration.enchant.merger.VanillaEnchantmentMerger;
+import db.chris.customenchantment.anvil.configuration.repair.ItemRepairCostPolicy;
 import db.chris.customenchantment.utils.LoreFormatter;
-import org.bukkit.inventory.ItemStack;
 
-public interface CustomEnchantmentConfig<E> {
+public interface CustomEnchantmentConfig {
 
     default LoreFormatter loreFormatter() {
         return LoreFormatter.DEFAULT;
     }
 
+    default ItemDmgMerger durabilityAfterRepair() {
+        return ItemDmgMerger.VANILLA;
+    }
+    
     default EnchantingCostPolicy enchantingCostPolicy() {
         return EnchantingCostPolicy.VANILLA;
     }
 
-    default RepairPolicy repairPolicy() {
-        return RepairPolicy.VANILLA;
+    default ItemRepairCostPolicy repairCostPolicy() {
+        return ItemRepairCostPolicy.VANILLA;
     }
 
     default RenameCostPolicy renamePolicy() {
         return RenameCostPolicy.VANILLA;
     }
 
-    default PreviousWorkCostPolicy previousWorkPolicy() {
+    default PreviousWorkCostPolicy previousWorkCostPolicy() {
         return PreviousWorkCostPolicy.VANILLA;
     }
 
     /** ADVANCED CONFIGURATION : WILL BREAK STUFF IF NOT DONE CORRECTLY **/
 
-    default EnchantmentMerger enchantmentMerger(ItemStack first, ItemStack second) {
-        return new VanillaEnchantmentMerger(first, second);
+    default EnchantmentMerger enchantmentMerger(EnchantingCostPolicy policy) {
+        return new VanillaEnchantmentMerger(policy);
     }
-
 
     /** startup & instance fetch methods **/
     default boolean enableCustomAnvilRoutine() {

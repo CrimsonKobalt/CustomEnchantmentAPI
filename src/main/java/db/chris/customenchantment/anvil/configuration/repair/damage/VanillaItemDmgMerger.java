@@ -1,11 +1,11 @@
-package db.chris.customenchantment.anvil.implementations.durability;
+package db.chris.customenchantment.anvil.configuration.repair.damage;
 
 import db.chris.customenchantment.anvil.AnvilMode;
-import db.chris.customenchantment.anvil.RepairPolicy;
+import db.chris.customenchantment.anvil.configuration.repair.ItemDmgMerger;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.Damageable;
 
-public class VanillaRepairPolicy implements RepairPolicy {
+public class VanillaItemDmgMerger implements ItemDmgMerger {
 
     @Override
     public int resultingDamage(ItemStack target, ItemStack sacrifice, AnvilMode mode) {
